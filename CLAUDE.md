@@ -23,8 +23,17 @@ See `docs/diagrams/software-arch.mermaid` for the full diagram. Key containers:
 - **Video Worker** (FFmpeg) → consumes jobs from queue, processes videos, updates DB and storage
 - **Database** (PostgreSQL) → users, channels, videos, comments, likes
 - **Object Storage** (S3/MinIO) → video files and thumbnails
-- **Message Queue** (TBD) → video processing job queue
-- **Email Service** (SMTP) → account confirmation and password recovery
+- **Message Queue (BullMQ/Redis)** → `nestjs-api` publishes `video-processing` jobs; `video-worker` consumes them
+- **Video Storage (MinIO/S3)** → presigned uploads, source videos and thumbnails
+
+## Fase 03 — Vídeos
+
+- `nestjs-project/src/videos/` owns the Video entity, upload initiation/completion, authorization, status and Range delivery.
+- Upload is direct to S3/MinIO with a short-lived presigned PUT URL (maximum 10GB); the API is not in the byte transfer path.
+- BullMQ + Redis runs `video-processing` jobs. The worker is a separate Compose service and executes FFprobe/FFmpeg.
+- Lifecycle: `draft → processing → ready/error`. Errors are persisted in `processing_error`.
+- Public ready-video URLs use a UUID slug. Streaming uses `Range` and `206 Partial Content`; download uses attachment disposition.
+- Compose services: `minio` (`9000`, console `9001`), `redis` (`6379`) and `video-worker`.
 
 ## Docker Networking
 

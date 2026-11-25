@@ -159,3 +159,13 @@ NestJS with standard module structure. Source lives in `src/`, compiled output i
 ## REST Conventions
 
 This is a RESTful API. All endpoints must follow standard REST conventions — correct HTTP methods, proper status codes, plural resource nouns, and consistent URL structure. Details are enforced via rules on controller files.
+
+## Fase 03 — Vídeos
+
+- `src/videos/` contains the Video entity, module, controller, service, storage adapter and domain exceptions.
+- Upload starts protected by JWT: `POST /videos/uploads` creates a draft and returns a presigned PUT URL.
+- `POST /videos/:slug/complete` verifies object size (10GB maximum) and adds a BullMQ `video-processing` job.
+- Queue infrastructure is Redis/BullMQ; the separate `video-worker` service runs FFprobe and FFmpeg.
+- Status is `draft`, `processing`, `ready`, or `error`; ready videos support `GET /videos/:slug/stream` with Range and `206` responses.
+- Owner-only `GET /videos/:slug/download` streams the source with attachment disposition.
+- Compose exposes `redis`, `minio` and `video-worker` in the Docker network. Use service hosts `redis` and `minio`, never `localhost`, in container code.
